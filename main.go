@@ -8,7 +8,7 @@ import (
 	"os"
 	"net/http"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 var (
@@ -26,6 +26,11 @@ type Topic struct {
 	Owner string `json:"owner"`
 	Structure string `json:"structure"`
 	Subscribers []string `json:"subscribers"`
+}
+
+type Event struct {
+	Topic string `json:"topicName"`
+	Data string `json:"data"`
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +70,7 @@ func registerSystem(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-	_, err = db.Exec("INSERT INTO systems VALUES ('?', '?')", newSystemRow.Name, newSystemRow.ApplicationEndpoint)
+	_, err = db.Exec(fmt.Sprintf("INSERT INTO systems VALUES ('%v', '%v')", newSystemRow.Name, newSystemRow.ApplicationEndpoint))
 	if err != nil {
 		log.Printf("Error creating new systems row: %v\n", err)
     	http.Error(w, "Error creating new systems row", http.StatusInternalServerError)
@@ -115,7 +120,7 @@ func viewSystem(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerTopic(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/register/system" {
+	if r.URL.Path != "/register/topic" {
 		http.Error(w, "404 not found", http.StatusNotFound)
 		return
 	} else if r.Method != "POST" {
@@ -141,7 +146,7 @@ func registerTopic(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-	_, err = db.Exec("INSERT INTO topics (name, description, owner, structure) VALUES ('?', '?', '?', '?')", newTopicRow.Name, newTopicRow.Description, newTopicRow.Owner, newTopicRow.Structure)
+	_, err = db.Exec(fmt.Sprintf("INSERT INTO topics (name, description, owner, structure) VALUES ('%v', '%v', '%v', '%v')", newTopicRow.Name, newTopicRow.Description, newTopicRow.Owner, newTopicRow.Structure))
 	if err != nil {
 		log.Printf("Error creating new topics row: %v\n", err)
     	http.Error(w, "Error creating new topics row", http.StatusInternalServerError)
@@ -151,6 +156,109 @@ func registerTopic(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{\"id\": 1}\n"))
+}
+
+func subscribe(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/subscribe" {
+		http.Error(w, "404 not found", http.StatusNotFound)
+		return
+	}
+
+	systemName := r.URL.Query().Get("systemName")
+	if systemName == "" {
+		log.Printf("Blank system name provided\n")
+    	http.Error(w, "Must provide systemName parameter", http.StatusBadRequest)
+		return
+	}
+
+	topicName := r.URL.Query().Get("topicName")
+	if topicName == "" {
+		log.Printf("Blank topic name provided\n")
+    	http.Error(w, "Must provide topicName parameter", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec(fmt.Sprintf("UPDATE topics SET subscribers = array_cat(subscribers, '{%v}') WHERE name = '%v'", systemName, topicName))
+	if err != nil {
+		log.Printf("Error updating topics row with new subscriber: %v\n", err)
+    	http.Error(w, "Error updating topics row with new subscriber", http.StatusInternalServerError)
+		return
+    }
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("Successfully subscribed\n"))
+}
+
+func publish(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/publish" {
+		http.Error(w, "404 not found", http.StatusNotFound)
+		return
+	} else if r.Method != "POST" {
+		http.Error(w, "Only POST methods are supported", http.StatusBadRequest)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	var newEvent Event
+	err := decoder.Decode(&newEvent)
+	if err != nil {
+		log.Printf("Error decoding register topic POST: %v\n", err)
+    	http.Error(w, "Error decoding POST body", http.StatusBadRequest)
+		return
+	}
+	log.Printf("%+v\n", newEvent)
+
+	subscriptionsColumn, err := db.Query(fmt.Sprintf("SELECT subscribers FROM topics WHERE name = '%v'", newEvent.Topic))
+	if err != nil {
+		log.Printf("Error querying topics table: %v\n", err)
+    	http.Error(w, "Error querying topics table", http.StatusInternalServerError)
+		return
+    }
+	defer subscriptionsColumn.Close()
+
+	var subscriptions []string
+	for subscriptionsColumn.Next() {
+        if err := subscriptionsColumn.Scan(pq.Array(&subscriptions)); err != nil {
+			log.Printf("Error querying topics table: %v\n", err)
+			http.Error(w, "Error querying topics table", http.StatusInternalServerError)
+			return
+        }
+    }
+
+	var subscriptionSearchString string
+	for index, subscription := range subscriptions {
+		if index == 0 {
+			subscriptionSearchString = fmt.Sprintf("'%v'", subscription)
+			continue
+		}
+
+		subscriptionSearchString += fmt.Sprintf(", '%v'", subscription)
+	}
+	log.Printf("%v\n", subscriptionSearchString)
+	subscriberApplicationEndpointRows, err := db.Query(fmt.Sprintf("SELECT applicationEndpoint FROM systems WHERE name in (%v)", subscriptionSearchString))
+	if err != nil {
+		log.Printf("Error querying systems table: %v\n", err)
+    	http.Error(w, "Error querying systems table", http.StatusInternalServerError)
+		return
+    }
+	defer subscriberApplicationEndpointRows.Close()
+
+	var output string
+	for subscriberApplicationEndpointRows.Next() {
+		var applicationEndpoint string
+        if err := subscriberApplicationEndpointRows.Scan(&applicationEndpoint); err != nil {
+			log.Printf("Error querying system table: %v\n", err)
+			http.Error(w, "Error querying systems table", http.StatusInternalServerError)
+			return
+        }
+		output += applicationEndpoint + "\n"
+    }
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(output))
 }
 
 func main() {
@@ -167,6 +275,8 @@ func main() {
 	http.HandleFunc("/register/system", registerSystem)
 	http.HandleFunc("/view/system", viewSystem)
 	http.HandleFunc("/register/topic", registerTopic)
+	http.HandleFunc("/subscribe", subscribe)
+	http.HandleFunc("/publish", publish)
 	log.Printf("Listening for requests...\n")
 	err = http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
 	if err != nil {
