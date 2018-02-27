@@ -166,6 +166,7 @@ func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/register/system", registerSystem)
 	http.HandleFunc("/view/system", viewSystem)
+	http.HandleFunc("/register/topic", registerTopic)
 	log.Printf("Listening for requests...\n")
 	err = http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
 	if err != nil {
