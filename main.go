@@ -20,6 +20,14 @@ type System struct {
 	ApplicationEndpoint string `json:"applicationEndpoint"`
 }
 
+type Topic struct {
+	Name string `json:"topicName"`
+	Description string `json:"description"`
+	Owner string `json:"owner"`
+	Structure string `json:"structure"`
+	Subscribers []string `json:"subscribers"`
+}
+
 func index(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
     	http.Error(w, "404 not found", http.StatusNotFound)
@@ -57,7 +65,7 @@ func registerSystem(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-	_, err = db.Exec(fmt.Sprintf("INSERT INTO systems VALUES ('%v', '%v')", newSystemRow.Name, newSystemRow.ApplicationEndpoint))
+	_, err = db.Exec("INSERT INTO systems VALUES ('?', '?')", newSystemRow.Name, newSystemRow.ApplicationEndpoint)
 	if err != nil {
 		log.Printf("Error creating new systems row: %v\n", err)
     	http.Error(w, "Error creating new systems row", http.StatusInternalServerError)
@@ -104,6 +112,45 @@ func viewSystem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
+}
+
+func registerTopic(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/register/system" {
+		http.Error(w, "404 not found", http.StatusNotFound)
+		return
+	} else if r.Method != "POST" {
+		http.Error(w, "Only POST methods are supported", http.StatusBadRequest)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	var newTopicRow Topic
+	err := decoder.Decode(&newTopicRow)
+	if err != nil {
+		log.Printf("Error decoding register topic POST: %v\n", err)
+    	http.Error(w, "Error decoding POST body", http.StatusBadRequest)
+		return
+	}
+	log.Printf("%+v", newTopicRow)
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS topics (name TEXT PRIMARY KEY NOT NULL, description TEXT NOT NULL, owner TEXT NOT NULL, structure JSON NOT NULL, subscribers TEXT [])")
+	if err != nil {
+		log.Printf("Error creating topics table: %v\n", err)
+    	http.Error(w, "Error creating topics table", http.StatusInternalServerError)
+		return
+    }
+
+	_, err = db.Exec("INSERT INTO topics (name, description, owner, structure) VALUES ('?', '?', '?', '?')", newTopicRow.Name, newTopicRow.Description, newTopicRow.Owner, newTopicRow.Structure)
+	if err != nil {
+		log.Printf("Error creating new topics row: %v\n", err)
+    	http.Error(w, "Error creating new topics row", http.StatusInternalServerError)
+		return
+    }
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{\"id\": 1}\n"))
 }
 
 func main() {
