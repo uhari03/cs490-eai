@@ -11,7 +11,7 @@ import (
 func sayHello(w http.ResponseWriter, r *http.Request) {
 	message := r.URL.Path
 	message = strings.TrimPrefix(message, "/")
-	message = "Hello " + message
+	message = "Hello from Hari" + message
 	w.Write([]byte(message))
 }
 
