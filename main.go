@@ -41,14 +41,14 @@ func registerSystem(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	var testSystem System
-	err := decoder.Decode(&testSystem)
+	var newSystemRow System
+	err := decoder.Decode(&newSystemRow)
 	if err != nil {
 		log.Printf("Error decoding register system POST: %v\n", err)
     	http.Error(w, "Error decoding POST body", http.StatusBadRequest)
 		return
 	}
-	log.Printf("%+v", testSystem)
+	log.Printf("%+v", newSystemRow)
 
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS systems (name TEXT PRIMARY KEY NOT NULL, applicationEndpoint TEXT NOT NULL)")
 	if err != nil {
@@ -57,7 +57,7 @@ func registerSystem(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
-	_, err = db.Exec(fmt.Sprintf("INSERT INTO systems VALUES ('%v', '%v')", testSystem.Name, testSystem.ApplicationEndpoint))
+	_, err = db.Exec(fmt.Sprintf("INSERT INTO systems VALUES ('%v', '%v')", newSystemRow.Name, newSystemRow.ApplicationEndpoint))
 	if err != nil {
 		log.Printf("Error creating new systems row: %v\n", err)
     	http.Error(w, "Error creating new systems row", http.StatusInternalServerError)
@@ -67,6 +67,43 @@ func registerSystem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{\"id\": 1}\n"))
+}
+
+func viewSystem(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/view/system" {
+		http.Error(w, "404 not found", http.StatusNotFound)
+		return
+	}
+
+	rows, err := db.Query("SELECT * FROM systems")
+	if err != nil {
+		log.Printf("Error querying systems table: %v\n", err)
+    	http.Error(w, "Error querying systems table", http.StatusInternalServerError)
+		return
+    }
+	defer rows.Close()
+
+	var queriedSystemRows []System
+	for rows.Next() {
+        var queriedSystemRow System
+        if err := rows.Scan(&(queriedSystemRow.Name), &(queriedSystemRow.ApplicationEndpoint)); err != nil {
+			log.Printf("Error querying systems table: %v\n", err)
+			http.Error(w, "Error querying systems table", http.StatusInternalServerError)
+			return
+        }
+		queriedSystemRows = append(queriedSystemRows, queriedSystemRow)
+    }
+
+	b, err := json.Marshal(&queriedSystemRows)
+	if err != nil {
+		log.Printf("Error marshalling data: %v\n", err)
+		http.Error(w, "Error marshalling data", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
 }
 
 func main() {
