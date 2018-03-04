@@ -1,3 +1,5 @@
 curl -v -H "Content-Type: application/json" -X POST -d '{"systemName": "haritest1", "applicationEndpoint": "stupid"}' https://lit-sea-20426.herokuapp.com/register/system
 
-curl -v -H "Content-Type: application/json" -X POST -d '{"topicName": "testtopic1", "description": "something stupid", "owner": "haritest1", "structure": "'\''{"struct1": "value1"}'\''"}' https://lit-sea-20426.herokuapp.com/register/topic
+curl -v -H "Content-Type: application/json" -X POST -d '{"topicName": "testtopic1", "description": "something stupid", "owner": "haritest1", "structure": "{\"struct1\": \"value1\"}"}' https://lit-sea-20426.herokuapp.com/register/topic
+
+curl -v -H "Content-Type: application/json" -X POST -d '{"topicName": "testtopic1", "data": "{\"struct1\": \"value1\"}"}' https://lit-sea-20426.herokuapp.com/publish
