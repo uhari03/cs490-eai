@@ -1,3 +1,4 @@
+import datetime
 import json
 import requests
 import random
@@ -50,10 +51,6 @@ if __name__ == '__main__':
 
     subscription = {'systemName': ais_name, 'topicName': topic_name}
 
-    event_data = '''{"cust_id": 1337, "amt": 314159.27, "dt": "2018-04-13"}'''
-    # '{"topicName": "testtopic1", "data": "{\"struct1\": \"value1\"}"}'
-    event = {'topicName': topic_name, 'data': event_data}
-
     print('~~~ Step 1: register internal systems (sales/AIS) ~~~')
     print('Sales system')
     print(json.dumps(sales_system, indent = 4))
@@ -83,6 +80,11 @@ if __name__ == '__main__':
         command = input()
         if command == 'stop':
             break
+
+        event_data = '{{"cust_id": {}, "amt": {:.2f}, "dt": "{}"}}'
+        formatted_data = event_data.format(random.randint(10000, 1000000),
+                random.random() * 10000, str(datetime.datetime.now()))
+        event = {'topicName': topic_name, 'data': formatted_data}
 
         r = requests.post(eai_base + publish, json = event)
         print('Sent a new {} event; saw status {}'.format(topic_name, r.status_code))
