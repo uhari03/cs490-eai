@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/lib/pq"
 )
@@ -236,7 +238,7 @@ func publish(w http.ResponseWriter, r *http.Request) {
 
 		subscriptionSearchString += fmt.Sprintf(", '%v'", subscription)
 	}
-	log.Printf("%v\n", subscriptionSearchString)
+	
 	subscriberApplicationEndpointRows, err := db.Query(fmt.Sprintf("SELECT applicationEndpoint FROM systems WHERE name in (%v)", subscriptionSearchString))
 	if err != nil {
 		log.Printf("Error querying systems table: %v\n", err)
@@ -245,20 +247,58 @@ func publish(w http.ResponseWriter, r *http.Request) {
     }
 	defer subscriberApplicationEndpointRows.Close()
 
-	var output string
+	output := "Attempted publishing to following endpoints:\n"
 	for subscriberApplicationEndpointRows.Next() {
 		var applicationEndpoint string
         if err := subscriberApplicationEndpointRows.Scan(&applicationEndpoint); err != nil {
-			log.Printf("Error querying system table: %v\n", err)
-			http.Error(w, "Error querying systems table", http.StatusInternalServerError)
-			return
+			log.Printf("Error scanning system table: %v\n", err)
+			continue
         }
+		go sendPost(applicationEndpoint, &newEvent)
 		output += applicationEndpoint + "\n"
     }
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(output))
+}
+
+func sendPost(url string, data *Event) {
+	jsonData := new(bytes.Buffer)
+	err := json.NewEncoder(jsonData).Encode(data)
+	if err != nil {
+		log.Printf("Error encoding data for URL '%v': %v\nData being encoded was:\n%+v", url, err, *data)
+		return
+	}
+
+	req, err := http.NewRequest("POST", url, jsonData)
+	if err != nil {
+		log.Printf("Error creating request for URL '%v': %v\nData being sent was:\n%+v", url, err, *data)
+		return
+	}
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{Timeout: time.Minute}
+    resp, err := client.Do(req)
+    if err != nil {
+        log.Printf("Error posting data for URL '%v': %v\nData being sent was:\n%+v", url, err, *data)
+		return
+    }
+    defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		decoder := json.NewDecoder(resp.Body)
+		var respBody string
+		err := decoder.Decode(&respBody)
+		if err != nil {
+        	log.Printf("Error decoding failure response body for URL '%v' with status '%v': %v\nData being sent was:\n%+v", url, resp.Status, err, *data)
+			return
+		}
+        log.Printf("Error posting data for URL '%v' with status '%v': %v\nData being sent was:\n%+v", url, resp.Status, respBody, *data)
+		return
+	}
+
+	log.Printf("Successfully sent POST to URL '%v'\nData being sent was:\n%+v", url, *data)
 }
 
 func main() {
