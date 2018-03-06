@@ -5,7 +5,7 @@ import random
 if __name__ == '__main__':
 
     eai_base = "https://lit-sea-20426.herokuapp.com"
-    dummy_base = "https://stil-taiga-23440.herokuapp.com"
+    dummy_base = "https://still-taiga-23440.herokuapp.com"
 
     register_system = '/register/system'
     register_topic = '/register/topic'
