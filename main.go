@@ -32,7 +32,7 @@ type Topic struct {
 
 type Event struct {
 	Topic string `json:"topicName"`
-	Data string `json:"data"`
+	Data interface{} `json:"data"`
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -206,11 +206,18 @@ func publish(w http.ResponseWriter, r *http.Request) {
 	var newEvent Event
 	err := decoder.Decode(&newEvent)
 	if err != nil {
-		log.Printf("Error decoding register topic POST: %v\n", err)
+		log.Printf("Error decoding published topic event POST: %v\n", err)
     	http.Error(w, "Error decoding POST body", http.StatusBadRequest)
 		return
 	}
 	log.Printf("%+v\n", newEvent)
+
+	_, err = json.Marshal(&(newEvent.Data))
+	if (err != nil) {
+		log.Printf("Invalid JSON data in published event: %v\n", err)
+    	http.Error(w, "Invalid JSON in data field", http.StatusBadRequest)
+		return
+	}
 
 	subscriptionsColumn, err := db.Query(fmt.Sprintf("SELECT subscribers FROM topics WHERE name = '%v'", newEvent.Topic))
 	if err != nil {
