@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -35,14 +36,70 @@ type Event struct {
 	Data interface{} `json:"data"`
 }
 
+type TemplateArgs struct {
+	Systems []System
+	Topics []Topic
+}
+
 func index(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
     	http.Error(w, "404 not found", http.StatusNotFound)
         return
+    } else if r.Method != "GET" {
+		http.Error(w, "Only GET methods are supported", http.StatusBadRequest)
+		return
+	}
+
+	systemRows, err := db.Query(fmt.Sprintf("SELECT * FROM systems"))
+	if err != nil {
+		log.Printf("Error querying systems table: %v\n", err)
+    	http.Error(w, "Error querying systems table", http.StatusInternalServerError)
+		return
     }
-	
-	indexMessage := "Hello from Hari\n"
-	w.Write([]byte(indexMessage))
+	defer systemRows.Close()
+
+	var allSystemEntries []System
+	for systemRows.Next() {
+		var system System
+
+        if err := systemRows.Scan(&system.Name, &system.ApplicationEndpoint); err != nil {
+			log.Printf("Error querying systems table: %v\n", err)
+			http.Error(w, "Error querying systems table", http.StatusInternalServerError)
+			return
+		}
+		
+		allSystemEntries = append(allSystemEntries, system)
+	}
+
+	topicRows, err := db.Query(fmt.Sprintf("SELECT * FROM topics"))
+	if err != nil {
+		log.Printf("Error querying topics table: %v\n", err)
+    	http.Error(w, "Error querying topics table", http.StatusInternalServerError)
+		return
+    }
+	defer topicRows.Close()
+
+	var allTopicEntries []Topic
+	for topicRows.Next() {
+		var topic Topic
+
+        if err := topicRows.Scan(&topic.Name, &topic.Description, &topic.Owner, &topic.Structure, pq.Array(&(topic.Subscribers))); err != nil {
+			log.Printf("Error querying topics table: %v\n", err)
+			http.Error(w, "Error querying topics table", http.StatusInternalServerError)
+			return
+		}
+		
+		allTopicEntries = append(allTopicEntries, topic)
+	}
+	log.Printf("%+v\n", allTopicEntries)
+
+	indexTemplate, err := template.ParseFiles("index.html")
+	if err != nil {
+		log.Printf("Error parsing index.html: %v\n", err)
+		http.Error(w, "Error parsing index.html", http.StatusInternalServerError)
+		return
+	}
+	indexTemplate.Execute(w, TemplateArgs{Systems: allSystemEntries, Topics: allTopicEntries})
 }
 
 func registerSystem(w http.ResponseWriter, r *http.Request) {

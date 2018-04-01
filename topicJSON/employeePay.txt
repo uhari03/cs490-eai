@@ -1,0 +1,13 @@
+{
+    "topicName": "employee_pay",
+    "description": "Fires whenever an employee is created or updated",
+    "owner": "hrm",
+    "structure": "{\n
+    \"cust_id\": \"(int) ID of employee\",\n
+    \"first_name\": \"(string) First name of employee\",\n
+    \"last_name\": \"(string) Last name of employee\",\n
+    \"start_date\": \"(string) Start date of employee\",\n
+    \"department\": \"(string) Department employee works in\",\n
+    \"Salary\": \"(int) Salary amount paid to employee per year\"\n
+}"
+}

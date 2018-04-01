@@ -4,4 +4,4 @@ curl -v -H "Content-Type: application/json" -X POST -d '{"topicName": "testtopic
 
 curl -v -H "Content-Type: application/json" -X POST -d '{"topicName": "testtopic1", "data": "{\"struct1\": \"value1\"}"}' https://lit-sea-20426.herokuapp.com/publish
 
-curl -v -H "Content-Type: application/json" -X POST -d @orderData.txt https://lit-sea-20426.herokuapp.com/register/topic
+curl -v -H "Content-Type: application/json" -X POST -d @topicJSON/orderData.txt https://lit-sea-20426.herokuapp.com/register/topic
