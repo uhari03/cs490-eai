@@ -1,0 +1,12 @@
+{
+    "topicName": "employee_fire",
+    "description": "Fires whenever an employee is fired",
+    "owner": "hrm",
+    "structure": "{\n
+    \"cust_id\": \"(int) ID of employee\",\n
+    \"first_name\": \"(string) First name of employee\",\n
+    \"last_name\": \"(string) Last name of employee\",\n
+    \"termination_date\": \"(string) Termination date of employee\",\n
+    \"severance\": \"(int) Severance pay to employee\"\n
+}"
+}

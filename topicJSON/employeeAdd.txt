@@ -1,0 +1,12 @@
+{
+    "topicName": "employee_add",
+    "description": "Fires whenever an employee is created or updated",
+    "owner": "hrm",
+    "structure": "{\n
+        \"cust_id\": \"(int) ID of employee\",\n
+        \"first_name\": \"(string) First name of employee\",\n
+        \"last_name\": \"(string) Last name of employee\",\n
+        \"start_date\": \"(string) Start date of employee\",\n
+        \"availability\": \"(string) days that employee is available to work\"\n
+}"
+}

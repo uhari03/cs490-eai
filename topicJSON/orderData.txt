@@ -1,0 +1,84 @@
+{
+    "topicName": "Order Data",
+    "description": "Sales and Marketing Outgoing Order Data",
+    "owner": "sales",
+    "structure": "{\n
+    \"billing_address\":{\n
+        \"address1\":\"1111 MYStreet Road\",\n
+        \"address2\":\"\",\n
+        \"city\":\"Mississauga\",\n
+        \"company\":\"None\",\n
+        \"country\":\"Canada\",\n
+        \"first_name\":\"Michael\",\n
+        \"last_name\":\"Kainth\",\n
+        \"name\":\"Michael Kainth\",\n
+        \"phone\":\"+1 647-555-0672\",\n
+        \"province\":\"Ontario\",\n
+        \"zip\":\"L5M1X1\"\n
+    },\n
+    \"card_details\":{\n
+        \"credit_card_company\":\"Visa\",\n
+        \"credit_card_number\":\"1\",\n
+        \"cvv_result\":\"M\"\n
+    },\n
+    \"currency\":\"CAD\",\n
+    \"customer\":{\n
+        \"email\":\"None\",\n
+        \"first_name\":\"Michael\",\n
+        \"id\":521180446771,\n
+        \"ip_address\":\"101.161.231.178\",\n
+        \"last_name\":\"Kainth\",\n
+        \"phone\":\"+16475550672\"\n
+    },\n
+    \"items\":[\n
+        {\n
+            \"model\":\"Moto 450\",\n
+            \"price\":\"24597.00\",\n
+            \"quantity\":1,\n
+            \"product_id\":\"019\",\n
+            \"year\":\"2015\"\n
+        },\n
+        {\n
+            \"model\":\"Enduro 250\",\n
+            \"price\":\"13597.00\",\n
+            \"quantity\":1,\n
+            \"product_id\":\"002\",\n
+            \"year\":\"2013\"\n
+        }\n
+    ],\n
+    \"items_subtotal\":\"38194.00\",\n
+    \"orderID\":1003,\n
+    \"shipping_address\":{\n
+        \"address1\":\"1111 MYStreet Road\",\n
+        \"address2\":\"\",\n
+        \"city\":\"Mississauga\",\n
+        \"company\":\"None\",\n
+        \"country\":\"Canada\",\n
+        \"country_code\":\"CA\",\n
+        \"first_name\":\"Michael\",\n
+        \"last_name\":\"Kainth\",\n
+        \"latitude\":41.1782405,\n
+        \"longitude\":-54.3908803,\n
+        \"name\":\"Michael Kainth\",\n
+        \"phone\":\"+1 647-555-0672\",\n
+        \"province\":\"Ontario\",\n
+        \"province_code\":\"ON\",\n
+        \"zip\":\"L5M1X1\"\n
+    },\n
+    \"shipping_price\":\"500.00\",\n
+    \"status_url\":\"https://shop.michaelkainth.com/\",\n
+    \"subtotal\":\"38194.00\",\n
+    \"taxes\":[\n
+        {\n
+            \"name\":\"HST\",\n
+            \"price\":\"4965.22\",\n
+            \"rate\":0.13\n
+        }\n
+    ],\n
+    \"timestamp\":\"2018-03-25T01:07:23-04:00\",\n
+    \"total_discounts\":\"0.00\",\n
+    \"total_price\":\"43659.22\",\n
+    \"total_tax\":\"4965.22\",\n
+    \"total_weight\":345000\n
+}"
+}
