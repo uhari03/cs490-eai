@@ -192,10 +192,10 @@ var successChart = new Chart(successCtx, {
                     borderColor: getRandomColor(),
                     fill: false,
                     data: [
-                        {{range $k, $v := $value}}
+                        {{range $i, $p := $value}}
                             {
-                                x: new Date({{$k.Year}}, 3, {{$k.Day}}, {{$k.Hour}}, {{$k.Minute}}, {{$k.Second}}, 0),
-                                y: {{$v}},
+                                x: new Date({{$p.XValue.Year}}, 3, {{$p.XValue.Day}}, {{$p.XValue.Hour}}, {{$p.XValue.Minute}}, {{$p.XValue.Second}}, 0),
+                                y: {{$p.YValue}},
                             },
                         {{end}}
                     ],
@@ -234,10 +234,10 @@ var failureChart = new Chart(failureCtx, {
                     borderColor: getRandomColor(),
                     fill: false,
                     data: [
-                        {{range $k, $v := $value}}
+                        {{range $i, $p := $value}}
                             {
-                                x: new Date({{$k.Year}}, 3, {{$k.Day}}, {{$k.Hour}}, {{$k.Minute}}, {{$k.Second}}, 0),
-                                y: {{$v}},
+                                x: new Date({{$p.XValue.Year}}, 3, {{$p.XValue.Day}}, {{$p.XValue.Hour}}, {{$p.XValue.Minute}}, {{$p.XValue.Second}}, 0),
+                                y: {{$p.YValue}},
                             },
                         {{end}}
                     ],
