@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/lib/pq"
@@ -42,15 +43,16 @@ type EventLog struct {
 	CreatedAt time.Time
 }
 
+type DataPoint struct {
+	XValue time.Time
+	YValue int
+}
+
 type TemplateArgs struct {
 	Systems []System
 	Topics []Topic
-	SuccessEvents map[string]map[time.Time]int
-	FailureEvents map[string]map[time.Time]int
-}
-
-func minusMonth(month time.Month) int {
-	return int(month)
+	SuccessEvents map[string][]DataPoint
+	FailureEvents map[string][]DataPoint
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -133,23 +135,41 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	templateArgs := TemplateArgs{Systems: allSystemEntries, Topics: allTopicEntries}
-	templateArgs.SuccessEvents = make(map[string]map[time.Time]int)
-	templateArgs.FailureEvents = make(map[string]map[time.Time]int)
+	successEvents := make(map[string]map[time.Time]int)
+	failureEvents := make(map[string]map[time.Time]int)
 	for _, eventLog := range allEventLogs {
 		t := time.Date(eventLog.CreatedAt.Year(), eventLog.CreatedAt.Month(), eventLog.CreatedAt.Day(), eventLog.CreatedAt.Hour(), eventLog.CreatedAt.Minute(), eventLog.CreatedAt.Second(), 0, eventLog.CreatedAt.Location())
 		if eventLog.Success {
-			if templateArgs.SuccessEvents[eventLog.Topic] == nil {
-				templateArgs.SuccessEvents[eventLog.Topic] = make(map[time.Time]int)
+			if successEvents[eventLog.Topic] == nil {
+				successEvents[eventLog.Topic] = make(map[time.Time]int)
 			}
 			
-			templateArgs.SuccessEvents[eventLog.Topic][t] += 1
+			successEvents[eventLog.Topic][t] += 1
 		} else {
-			if templateArgs.FailureEvents[eventLog.Topic] == nil {
-				templateArgs.FailureEvents[eventLog.Topic] = make(map[time.Time]int)
+			if failureEvents[eventLog.Topic] == nil {
+				failureEvents[eventLog.Topic] = make(map[time.Time]int)
 			}
 
-			templateArgs.FailureEvents[eventLog.Topic][t] += 1
+			failureEvents[eventLog.Topic][t] += 1
 		}
+	}
+	templateArgs.SuccessEvents = make(map[string][]DataPoint)
+	for topicName, points := range successEvents {
+		for x, y := range points {
+			templateArgs.SuccessEvents[topicName] = append(templateArgs.SuccessEvents[topicName], DataPoint{XValue: x, YValue: y})
+		}
+		sort.Slice(templateArgs.SuccessEvents[topicName], func(i, j int) bool {
+			return templateArgs.SuccessEvents[topicName][i].XValue.Before(templateArgs.SuccessEvents[topicName][j].XValue)
+		})
+	}
+	templateArgs.FailureEvents = make(map[string][]DataPoint)
+	for topicName, points := range failureEvents {
+		for x, y := range points {
+			templateArgs.FailureEvents[topicName] = append(templateArgs.FailureEvents[topicName], DataPoint{XValue: x, YValue: y})
+		}
+		sort.Slice(templateArgs.FailureEvents[topicName], func(i, j int) bool {
+			return templateArgs.FailureEvents[topicName][i].XValue.Before(templateArgs.FailureEvents[topicName][j].XValue)
+		})
 	}
 	indexTemplate.Execute(w, templateArgs)
 }

@@ -1,0 +1,9 @@
+{
+    "topicName": "sales_invoice",
+    "description": "Fires when a new sale is received, it creates an invoice",
+    "owner": "ais",
+    "structure": "{\n
+    \"orderID\": \"(int) ID of purchaser\",\n
+    \"invoiceURL\": \"(string) link to download URL\"\n
+}"
+}
