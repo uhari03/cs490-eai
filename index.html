@@ -1,49 +1,54 @@
 <!DOCTYPE html>
 <html>
-<title>W3.CSS Template</title>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins">
-<style>
-    body,h1,h2,h3,h4,h5 {font-family: "Poppins", sans-serif}
-    body {font-size:16px;}
-    .w3-half img{margin-bottom:-6px;margin-top:16px;opacity:0.8;cursor:pointer}
-    .w3-half img:hover{opacity:1}
 
-    table {  
-        color: #333;
-        font-family: Helvetica, Arial, sans-serif;
-        /*width: 640px; */
-        border-collapse:
-        collapse; border-spacing: 0;
-    }
-
-    td, th {  
-        border: 1px solid transparent; /* No more visible border */
-        height: 30px;
-        transition: all 0.3s;  /* Simple transition for hover effect */
-    }
-
-    th {  
-        background: #DFDFDF;  /* Darken header a bit */
-        font-weight: bold;
-        text-align: center;
-    }
-
-    td {  
-        background: #FAFAFA;
-    }
-
-    /* Cells in even rows (2,4,6...) are one color */        
-    tr:nth-child(even) td { background: #F1F1F1; }   
-
-    /* Cells in odd rows (1,3,5...) are another (excludes header cells)  */        
-    tr:nth-child(odd) td { background: #FEFEFE; }  
-
-    tr td:hover { background: #666; color: #FFF; }  
-    /* Hover cell effect! */
-</style>
+<head>
+    <title>EAI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+    <style>
+        body,h1,h2,h3,h4,h5 {font-family: "Poppins", sans-serif}
+        body {font-size:16px;}
+        .w3-half img{margin-bottom:-6px;margin-top:16px;opacity:0.8;cursor:pointer}
+        .w3-half img:hover{opacity:1}
+    
+        table {  
+            color: #333;
+            font-family: Helvetica, Arial, sans-serif;
+            /*width: 640px; */
+            border-collapse:
+            collapse; border-spacing: 0;
+        }
+    
+        td, th {  
+            border: 1px solid transparent; /* No more visible border */
+            height: 30px;
+            transition: all 0.3s;  /* Simple transition for hover effect */
+        }
+    
+        th {  
+            background: #DFDFDF;  /* Darken header a bit */
+            font-weight: bold;
+            text-align: center;
+        }
+    
+        td {  
+            background: #FAFAFA;
+        }
+    
+        /* Cells in even rows (2,4,6...) are one color */        
+        tr:nth-child(even) td { background: #F1F1F1; }   
+    
+        /* Cells in odd rows (1,3,5...) are another (excludes header cells)  */        
+        tr:nth-child(odd) td { background: #FEFEFE; }  
+    
+        tr td:hover { background: #666; color: #FFF; }  
+        /* Hover cell effect! */
+    </style>
+</head>
 
 <body>
 
@@ -54,10 +59,11 @@
         <h3 class="w3-padding-64"><b>EAI<br>Group 5</b></h3>
     </div>
     <div class="w3-bar-block">
-        <a href="#" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Home</a> 
-        <a href="#group5members" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Group 5 Members</a> 
-        <a href="#systems" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Systems</a> 
+        <a href="#" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Home</a>
+        <a href="#group5members" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Group 5 Members</a>
+        <a href="#systems" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Systems</a>
         <a href="#topics" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Topics</a>
+        <a href="#analytics" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Analytics</a>
     </div>
 </nav>
 
@@ -138,6 +144,16 @@
             {{end}}
         </table>
     </div>
+
+    <!-- Analytics -->
+    <div class="w3-container" id="analytics" style="margin-top:75px">
+        <h1 class="w3-xxxlarge w3-text-red"><b>Analytics</b></h1>
+        <hr style="width:50px;border:5px solid red" class="w3-round">
+        <p>The following show the successful and failure processing of events by topic name.</p>
+
+        <canvas id="successChart" width="800" height="600"></canvas>
+        <canvas id="failureChart" width="800" height="600"></canvas>
+    </div>
 </div>
 
 <!-- W3.CSS Container -->
@@ -154,6 +170,100 @@ function w3_close() {
     document.getElementById("mySidebar").style.display = "none";
     document.getElementById("myOverlay").style.display = "none";
 }
+
+// Script to populate line charts.
+function getRandomColor() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+var successCtx = document.getElementById("successChart");
+var successChart = new Chart(successCtx, {
+    type: 'line',
+    data: {
+        datasets: [
+            {{range $key, $value := .SuccessEvents}}
+                {
+                    label: {{$key}},
+                    borderColor: getRandomColor(),
+                    fill: false,
+                    data: [
+                        {{range $k, $v := $value}}
+                            {
+                                x: new Date({{$k.Year}}, 3, {{$k.Day}}, {{$k.Hour}}, {{$k.Minute}}, {{$k.Second}}, 0),
+                                y: {{$v}},
+                            },
+                        {{end}}
+                    ],
+                },
+            {{end}}
+        ]
+    },
+    options: {
+        title: {
+            display: true,
+            text: 'Successful Publishing of Events'
+        },
+        scales: {
+            xAxes: [{
+                type: 'time',
+                distribution: 'linear'
+            }],
+            yAxes: [{
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Number of Successful Publishes'
+                }
+            }]
+        }
+    },
+});
+
+var failureCtx = document.getElementById("failureChart");
+var failureChart = new Chart(failureCtx, {
+    type: 'line',
+    data: {
+        datasets: [
+            {{range $key, $value := .FailureEvents}}
+                {
+                    label: {{$key}},
+                    borderColor: getRandomColor(),
+                    fill: false,
+                    data: [
+                        {{range $k, $v := $value}}
+                            {
+                                x: new Date({{$k.Year}}, 3, {{$k.Day}}, {{$k.Hour}}, {{$k.Minute}}, {{$k.Second}}, 0),
+                                y: {{$v}},
+                            },
+                        {{end}}
+                    ],
+                },
+            {{end}}
+        ]
+    },
+    options: {
+        title: {
+            display: true,
+            text: 'Failed Publishing of Events'
+        },
+        scales: {
+            xAxes: [{
+                type: 'time',
+                distribution: 'linear'
+            }],
+            yAxes: [{
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Number of Failed Publishes'
+                }
+            }]
+        }
+    },
+});
 </script>
 
 </body>

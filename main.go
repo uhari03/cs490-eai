@@ -36,9 +36,21 @@ type Event struct {
 	Data interface{} `json:"data"`
 }
 
+type EventLog struct {
+	Topic string
+	Success bool
+	CreatedAt time.Time
+}
+
 type TemplateArgs struct {
 	Systems []System
 	Topics []Topic
+	SuccessEvents map[string]map[time.Time]int
+	FailureEvents map[string]map[time.Time]int
+}
+
+func minusMonth(month time.Month) int {
+	return int(month)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -91,15 +103,55 @@ func index(w http.ResponseWriter, r *http.Request) {
 		
 		allTopicEntries = append(allTopicEntries, topic)
 	}
-	log.Printf("%+v\n", allTopicEntries)
 
+	eventLogRows, err := db.Query(fmt.Sprintf("SELECT * FROM events"))
+	if err != nil {
+		log.Printf("Error querying events table: %v\n", err)
+    	http.Error(w, "Error querying events table", http.StatusInternalServerError)
+		return
+    }
+	defer eventLogRows.Close()
+
+	var allEventLogs []EventLog
+	for eventLogRows.Next() {
+		var eventLog EventLog
+
+        if err := eventLogRows.Scan(&eventLog.Topic, &eventLog.Success, &eventLog.CreatedAt); err != nil {
+			log.Printf("Error querying events table: %v\n", err)
+			http.Error(w, "Error querying events table", http.StatusInternalServerError)
+			return
+		}
+		
+		allEventLogs = append(allEventLogs, eventLog)
+	}
+
+	//indexTemplate, err := template.New("").Funcs(template.FuncMap{"minusMonth": minusMonth}).ParseFiles("index.html")
 	indexTemplate, err := template.ParseFiles("index.html")
 	if err != nil {
 		log.Printf("Error parsing index.html: %v\n", err)
 		http.Error(w, "Error parsing index.html", http.StatusInternalServerError)
 		return
 	}
-	indexTemplate.Execute(w, TemplateArgs{Systems: allSystemEntries, Topics: allTopicEntries})
+	templateArgs := TemplateArgs{Systems: allSystemEntries, Topics: allTopicEntries}
+	templateArgs.SuccessEvents = make(map[string]map[time.Time]int)
+	templateArgs.FailureEvents = make(map[string]map[time.Time]int)
+	for _, eventLog := range allEventLogs {
+		t := time.Date(eventLog.CreatedAt.Year(), eventLog.CreatedAt.Month(), eventLog.CreatedAt.Day(), eventLog.CreatedAt.Hour(), eventLog.CreatedAt.Minute(), eventLog.CreatedAt.Second(), 0, eventLog.CreatedAt.Location())
+		if eventLog.Success {
+			if templateArgs.SuccessEvents[eventLog.Topic] == nil {
+				templateArgs.SuccessEvents[eventLog.Topic] = make(map[time.Time]int)
+			}
+			
+			templateArgs.SuccessEvents[eventLog.Topic][t] += 1
+		} else {
+			if templateArgs.FailureEvents[eventLog.Topic] == nil {
+				templateArgs.FailureEvents[eventLog.Topic] = make(map[time.Time]int)
+			}
+
+			templateArgs.FailureEvents[eventLog.Topic][t] += 1
+		}
+	}
+	indexTemplate.Execute(w, templateArgs)
 }
 
 func registerSystem(w http.ResponseWriter, r *http.Request) {
@@ -332,12 +384,14 @@ func sendPost(url string, data *Event) {
 	err := json.NewEncoder(jsonData).Encode(data)
 	if err != nil {
 		log.Printf("Error encoding data for URL '%v': %v\nData being encoded was:\n%+v", url, err, *data)
+		logEvent(data.Topic, false)
 		return
 	}
 
 	req, err := http.NewRequest("POST", url, jsonData)
 	if err != nil {
 		log.Printf("Error creating request for URL '%v': %v\nData being sent was:\n%+v", url, err, *data)
+		logEvent(data.Topic, false)
 		return
 	}
     req.Header.Set("Content-Type", "application/json")
@@ -346,6 +400,7 @@ func sendPost(url string, data *Event) {
     resp, err := client.Do(req)
     if err != nil {
         log.Printf("Error posting data for URL '%v': %v\nData being sent was:\n%+v", url, err, *data)
+		logEvent(data.Topic, false)
 		return
     }
     defer resp.Body.Close()
@@ -356,13 +411,29 @@ func sendPost(url string, data *Event) {
 		err := decoder.Decode(&respBody)
 		if err != nil {
         	log.Printf("Error decoding failure response body for URL '%v' with status '%v': %v\nData being sent was:\n%+v", url, resp.Status, err, *data)
-			return
+		} else {
+			log.Printf("Error posting data for URL '%v' with status '%v': %v\nData being sent was:\n%+v", url, resp.Status, respBody, *data)
 		}
-        log.Printf("Error posting data for URL '%v' with status '%v': %v\nData being sent was:\n%+v", url, resp.Status, respBody, *data)
+		logEvent(data.Topic, false)
 		return
 	}
 
 	log.Printf("Successfully sent POST to URL '%v'\nData being sent was:\n%+v", url, *data)
+	logEvent(data.Topic, true)
+}
+
+func logEvent(topicName string, success bool) {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS events (name TEXT NOT NULL, success BOOLEAN NOT NULL, created_at TIMESTAMPTZ DEFAULT now() NOT NULL)")
+	if err != nil {
+		log.Printf("Error creating events table: %v\n", err)
+		return
+    }
+
+	_, err = db.Exec(fmt.Sprintf("INSERT INTO events (name, success) VALUES ('%v', %v)", topicName, success))
+	if err != nil {
+		log.Printf("Error creating new events row: %v\n", err)
+		return
+    }
 }
 
 func main() {

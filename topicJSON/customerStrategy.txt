@@ -1,0 +1,11 @@
+{
+    "topicName": "customer_strategy",
+    "description": "Provides the new up-to-date recommended strategy for individual customers",
+    "owner": "crm",
+    "structure": "{\n
+    \"customer_id\": \"(int) ID of the customer\",\n
+    \"strategy\": \"(string) Currently recommended strategy\",\n
+    \"prev_strategy\": \"(string|null) Previously recommended strategy (null if it is a new customer)\",\n
+    \"last_change\": \"(int) Epoch time since the last time the customer strategy has changed.\"\n
+}"
+}
